@@ -3960,39 +3960,6 @@ void idGameLocal::CalcFov( float base_fov, float &fov_x, float &fov_y ) const {
 		Printf( sys->FPU_GetState() );
 		Error( "idGameLocal::CalcFov: FPU stack not empty" );
 	}
-
-// RAVEN BEGIN
-// jnewquist: Option to adjust vertical fov instead of horizontal for non 4:3 modes
-	if ( g_fixedHorizFOV.GetBool() ) {
-		int aspectChoice = cvarSystem->GetCVarInteger( "r_aspectRatio" );
-		switch( aspectChoice ) {
-		default :
-		case 0 :
-			// 4:3
-			ratio_x = 4.0f;
-			ratio_y = 3.0f;
-			break;
-
-		case 1 :
-			// 16:9
-			ratio_x = 16.0f;
-			ratio_y = 9.0f;
-			break;
-
-		case 2 :
-			// 16:10
-			ratio_x = 16.0f;
-			ratio_y = 10.0f;
-			break;
-		}
-		x = ratio_x / idMath::Tan( base_fov / 360.0f * idMath::PI );
-		y = idMath::ATan( ratio_y, x );
-		fov_y = y * 360.0f / idMath::PI;
-		fov_x = base_fov;
-		return;
-	}
-// RAVEN END
-
 	// first, calculate the vertical fov based on a 640x480 view
 	x = 640.0f / idMath::Tan( base_fov / 360.0f * idMath::PI );
 	y = idMath::ATan( 480.0f, x );
@@ -4007,7 +3974,6 @@ void idGameLocal::CalcFov( float base_fov, float &fov_x, float &fov_y ) const {
 
 	int aspectChoice = cvarSystem->GetCVarInteger( "r_aspectRatio" );
 	switch( aspectChoice ) {
-	default :
 	case 0 :
 		// 4:3
 		fov_x = base_fov;
@@ -4015,9 +3981,15 @@ void idGameLocal::CalcFov( float base_fov, float &fov_x, float &fov_y ) const {
 		break;
 
 	case 1 :
-		// 16:9
-		ratio_x = 16.0f;
-		ratio_y = 9.0f;
+		if (g_fixedHorizFOV.GetBool() && cvarSystem->GetCVarInteger("r_mode") > 0) {
+			ratio_x = cvarSystem->GetCVarInteger("r_customWidth");
+			ratio_y = cvarSystem->GetCVarInteger("r_customHeight");
+		}
+		else {
+			// 16:9
+			ratio_x = 16.0f;
+			ratio_y = 9.0f;
+		}
 		break;
 
 	case 2 :
@@ -4025,6 +3997,8 @@ void idGameLocal::CalcFov( float base_fov, float &fov_x, float &fov_y ) const {
 		ratio_x = 16.0f;
 		ratio_y = 10.0f;
 		break;
+	default:
+		return;
 	}
 
 	y = ratio_y / idMath::Tan( fov_y / 360.0f * idMath::PI );
