@@ -3771,15 +3771,15 @@ idGameLocal::CalcFov
 Calculates the horizontal and vertical field of view based on a horizontal field of view and custom aspect ratio
 ====================
 */
-void idGameLocal::CalcFov( float base_fov, float &fov_x, float &fov_y ) const {
+void idGameLocal::CalcFov(float base_fov, float& fov_x, float& fov_y) const {
 	float	x;
 	float	y;
 	float	ratio_x;
 	float	ratio_y;
 
-	if ( !sys->FPU_StackIsEmpty() ) {
-		Printf( sys->FPU_GetState() );
-		Error( "idGameLocal::CalcFov: FPU stack not empty" );
+	if (!sys->FPU_StackIsEmpty()) {
+		Printf(sys->FPU_GetState());
+		Error("idGameLocal::CalcFov: FPU stack not empty");
 	}
 	// first, calculate the vertical fov based on a 640x480 view
 	x = 640.0f / idMath::Tan(base_fov / 360.0f * idMath::PI);
@@ -3787,18 +3787,25 @@ void idGameLocal::CalcFov( float base_fov, float &fov_x, float &fov_y ) const {
 	fov_y = y * 360.0f / idMath::PI;
 
 	// FIXME: somehow, this is happening occasionally
-	assert( fov_y > 0 );
-	if ( fov_y <= 0 ) {
-		Printf( sys->FPU_GetState() );
-		Error( "idGameLocal::CalcFov: bad result" );
+	assert(fov_y > 0);
+	if (fov_y <= 0) {
+		Printf(sys->FPU_GetState());
+		Error("idGameLocal::CalcFov: bad result");
 	}
 
-	int aspectChoice = cvarSystem->GetCVarInteger( "r_aspectRatio" );
-	switch( aspectChoice ) {
+	int aspectChoice = cvarSystem->GetCVarInteger("r_aspectRatio");
+	switch (aspectChoice) {
+	default:
 	case 0:
-		// 4:3
-		fov_x = base_fov;
-		return;
+		if (g_fixedHorizFOV.GetBool() && cvarSystem->GetCVarInteger("r_mode") == -1) {
+			ratio_x = cvarSystem->GetCVarInteger("r_customWidth");
+			ratio_y = cvarSystem->GetCVarInteger("r_customHeight");
+		}
+		// 4:3	
+		else {
+			fov_x = base_fov;
+			return;
+		}
 		break;
 
 	case 1:
@@ -3812,11 +3819,7 @@ void idGameLocal::CalcFov( float base_fov, float &fov_x, float &fov_y ) const {
 		ratio_x = 16.0f;
 		ratio_y = 10.0f;
 		break;
-	default:
-		if (g_fixedHorizFOV.GetBool() && cvarSystem->GetCVarInteger("r_mode") == -1) {
-			ratio_x = cvarSystem->GetCVarInteger("r_customWidth");
-			ratio_y = cvarSystem->GetCVarInteger("r_customHeight");
-		}
+
 	}
 
 	y = ratio_y / idMath::Tan(fov_y / 360.0f * idMath::PI);

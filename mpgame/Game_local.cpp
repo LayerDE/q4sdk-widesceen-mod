@@ -3950,71 +3950,71 @@ idGameLocal::CalcFov
 Calculates the horizontal and vertical field of view based on a horizontal field of view and custom aspect ratio
 ====================
 */
-void idGameLocal::CalcFov( float base_fov, float &fov_x, float &fov_y ) const {
+void idGameLocal::CalcFov(float base_fov, float& fov_x, float& fov_y) const {
 	float	x;
 	float	y;
 	float	ratio_x;
 	float	ratio_y;
-	
-	if ( !sys->FPU_StackIsEmpty() ) {
-		Printf( sys->FPU_GetState() );
-		Error( "idGameLocal::CalcFov: FPU stack not empty" );
+
+	if (!sys->FPU_StackIsEmpty()) {
+		Printf(sys->FPU_GetState());
+		Error("idGameLocal::CalcFov: FPU stack not empty");
 	}
 	// first, calculate the vertical fov based on a 640x480 view
-	x = 640.0f / idMath::Tan( base_fov / 360.0f * idMath::PI );
-	y = idMath::ATan( 480.0f, x );
+	x = 640.0f / idMath::Tan(base_fov / 360.0f * idMath::PI);
+	y = idMath::ATan(480.0f, x);
 	fov_y = y * 360.0f / idMath::PI;
 
 	// FIXME: somehow, this is happening occasionally
-	assert( fov_y > 0 );
-	if ( fov_y <= 0 ) {
-		Printf( sys->FPU_GetState() );
-		Error( "idGameLocal::CalcFov: bad result" );
+	assert(fov_y > 0);
+	if (fov_y <= 0) {
+		Printf(sys->FPU_GetState());
+		Error("idGameLocal::CalcFov: bad result");
 	}
 
-	int aspectChoice = cvarSystem->GetCVarInteger( "r_aspectRatio" );
-	switch( aspectChoice ) {
-	case 0 :
-		// 4:3
-		fov_x = base_fov;
-		return;
-		break;
-
-	case 1 :
-		if (g_fixedHorizFOV.GetBool() && cvarSystem->GetCVarInteger("r_mode") > 0) {
+	int aspectChoice = cvarSystem->GetCVarInteger("r_aspectRatio");
+	switch (aspectChoice) {
+	default:
+	case 0:
+		if (g_fixedHorizFOV.GetBool() && cvarSystem->GetCVarInteger("r_mode") == -1) {
 			ratio_x = cvarSystem->GetCVarInteger("r_customWidth");
 			ratio_y = cvarSystem->GetCVarInteger("r_customHeight");
 		}
+		// 4:3	
 		else {
-			// 16:9
-			ratio_x = 16.0f;
-			ratio_y = 9.0f;
+			fov_x = base_fov;
+			return;
 		}
 		break;
 
-	case 2 :
+	case 1:
+		// 16:9
+		ratio_x = 16.0f;
+		ratio_y = 9.0f;
+		break;
+
+	case 2:
 		// 16:10
 		ratio_x = 16.0f;
 		ratio_y = 10.0f;
 		break;
-	default:
-		return;
+
 	}
 
-	y = ratio_y / idMath::Tan( fov_y / 360.0f * idMath::PI );
-	fov_x = idMath::ATan( ratio_x, y ) * 360.0f / idMath::PI;
+	y = ratio_y / idMath::Tan(fov_y / 360.0f * idMath::PI);
+	fov_x = idMath::ATan(ratio_x, y) * 360.0f / idMath::PI;
 
-	if ( fov_x < base_fov ) {
+	if (fov_x < base_fov) {
 		fov_x = base_fov;
-		x = ratio_x / idMath::Tan( fov_x / 360.0f * idMath::PI );
-		fov_y = idMath::ATan( ratio_y, x ) * 360.0f / idMath::PI;
+		x = ratio_x / idMath::Tan(fov_x / 360.0f * idMath::PI);
+		fov_y = idMath::ATan(ratio_y, x) * 360.0f / idMath::PI;
 	}
 
 	// FIXME: somehow, this is happening occasionally
-	assert( ( fov_x > 0 ) && ( fov_y > 0 ) );
-	if ( ( fov_y <= 0 ) || ( fov_x <= 0 ) ) {
-		Printf( sys->FPU_GetState() );
-		Error( "idGameLocal::CalcFov: bad result" );
+	assert((fov_x > 0) && (fov_y > 0));
+	if ((fov_y <= 0) || (fov_x <= 0)) {
+		Printf(sys->FPU_GetState());
+		Error("idGameLocal::CalcFov: bad result");
 	}
 }
 
