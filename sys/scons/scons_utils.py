@@ -1,5 +1,5 @@
 # -*- mode: python -*-
-import sys, os, string, time, subprocess, re, pickle, io, pdb, zipfile #popen2
+import sys, os, string, time, commands, re, pickle, StringIO, popen2, commands, pdb, zipfile
 import SCons
 
 # need an Environment and a matching buffered_spawn API .. encapsulate
@@ -8,8 +8,8 @@ class idBuffering:
 	silent = False
 
 	def buffered_spawn( self, sh, escape, cmd, args, env ):
-		stderr = io.StringIO()
-		stdout = io.StringIO()
+		stderr = StringIO.StringIO()
+		stdout = StringIO.StringIO()
 		command_string = ''
 		for i in args:
 			if ( len( command_string ) ):
@@ -17,12 +17,12 @@ class idBuffering:
 			command_string += i
 		try:
 			retval = self.env['PSPAWN']( sh, escape, cmd, args, env, stdout, stderr )
-		except OSError as x:
+		except OSError, x:
 			if x.errno != 10:
 				raise x
-			print('OSError ignored on command: %s' % command_string)
+			print 'OSError ignored on command: %s' % command_string
 			retval = 0
-		print(command_string)
+		print command_string
 		if ( retval != 0 or not self.silent ):
 			sys.stdout.write( stdout.getvalue() )
 			sys.stderr.write( stderr.getvalue() )
@@ -31,8 +31,8 @@ class idBuffering:
 class idSetupBase:
 	
 	def SimpleCommand( self, cmd ):
-		print(cmd)
-		ret = subprocess.getstatusoutput( cmd )
+		print cmd
+		ret = commands.getstatusoutput( cmd )
 		if ( len( ret[ 1 ] ) ):
 			sys.stdout.write( ret[ 1 ] )
 			sys.stdout.write( '\n' )
@@ -41,14 +41,14 @@ class idSetupBase:
 		return ret[ 1 ]
 
 	def TrySimpleCommand( self, cmd ):
-		print(cmd)
-		ret = subprocess.getstatusoutput( cmd )
+		print cmd
+		ret = commands.getstatusoutput( cmd )
 		sys.stdout.write( ret[ 1 ] )
 
 	def M4Processing( self, file, d ):
 		file_out = file[:-3]
 		cmd = 'm4 '
-		for ( key, val ) in list(d.items()):
+		for ( key, val ) in d.items():
 			cmd += '--define=%s="%s" ' % ( key, val )
 		cmd += '%s > %s' % ( file, file_out )
 		self.SimpleCommand( cmd )	
@@ -102,11 +102,11 @@ class idSetupBase:
 def checkLDD( target, source, env ):
 	file = target[0]
 	if (not os.path.isfile(file.abspath)):
-		print(('ERROR: CheckLDD: target %s not found\n' % target[0]))
-		sys.exit(1)
-	( status, output ) = subprocess.getstatusoutput( 'ldd -r %s' % file )
+		print('ERROR: CheckLDD: target %s not found\n' % target[0])
+		Exit(1)
+	( status, output ) = commands.getstatusoutput( 'ldd -r %s' % file )
 	if ( status != 0 ):
-		print('ERROR: ldd command returned with exit code %d' % ldd_ret)
+		print 'ERROR: ldd command returned with exit code %d' % ldd_ret
 		os.system( 'rm %s' % target[ 0 ] )
 		sys.exit(1)
 	lines = string.split( output, '\n' )
@@ -121,8 +121,8 @@ def checkLDD( target, source, env ):
 			except:
 				have_undef = 1
 	if ( have_undef ):
-		print(output)
-		print("ERROR: undefined symbols")
+		print output
+		print "ERROR: undefined symbols"
 		os.system('rm %s' % target[0])
 		sys.exit(1)
 
@@ -133,7 +133,7 @@ def SharedLibrarySafe( env, target, source ):
 	return ret
 
 def NotImplementedStub( *whatever ):
-	print('Not Implemented')
+	print 'Not Implemented'
 	sys.exit( 1 )
 
 # --------------------------------------------------------------------

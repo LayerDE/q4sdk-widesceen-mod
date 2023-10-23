@@ -3,7 +3,7 @@
 # TTimo <ttimo@idsoftware.com>
 # http://scons.sourceforge.net
 
-import sys, os, time, subprocess, re, pickle, io, pdb, zipfile, string, copy #popen2
+import sys, os, time, commands, re, pickle, StringIO, popen2, commands, pdb, zipfile, string
 import SCons
 
 sys.path.append( 'sys/scons' )
@@ -186,15 +186,15 @@ EnsureSConsVersion( 0, 96 )
 # system detection -------------------------------
 
 # OS and CPU
-OS = subprocess.getoutput( 'uname -s' )
+OS = commands.getoutput( 'uname -s' )
 if ( OS == 'Linux' ):
-	cpu = subprocess.getoutput( 'uname -m' )
+	cpu = commands.getoutput( 'uname -m' )
 	if ( cpu == 'i686' ):
 		cpu = 'x86'
 	else:
 		cpu = 'cpu'
 elif ( OS == 'Darwin' ):
-	cpu = subprocess.getoutput( 'uname -m' )
+	cpu = commands.getoutput( 'uname -m' )
 	if ( cpu == 'Power Macintosh' ):
 		cpu = 'ppc'
 	else:
@@ -204,10 +204,10 @@ elif ( OS == 'Darwin' ):
 
 # default settings -------------------------------
 
-CC = 'gcc-4.1'
-CXX = 'g++-4.1'
+CC = 'gcc'
+CXX = 'g++'
 JOBS = '1'
-BUILD = 'debug'
+BUILD = 'release'
 DEDICATED = '0'
 TARGET_CORE = '1'
 TARGET_GAME = '1'
@@ -233,7 +233,7 @@ SETUP_FULL = '0'
 SETUP_INCREMENTAL = '0'
 SETUP = '0'	# no cmdline control, will be set to 1 if any form of setup is requested
 SDK = '0'
-NOCONF = '0'
+NOCONF = '1'
 NOCURL = '0'
 FIX_INCLUDES = '0'
 FIX_SUPER = '0'
@@ -248,42 +248,20 @@ GCC_X86_ASM = '0'
 
 # site settings ----------------------------------
 
-if ( 'NOCONF' not in ARGUMENTS or ARGUMENTS['NOCONF'] != '1' ):
-	site_dict = {}
-	if (os.path.exists(conf_filename)):
-		site_file = open(conf_filename, 'r')
-		p = pickle.Unpickler(site_file)
-		site_dict = p.load() #.encode()
-		print('Loading build configuration from ' + conf_filename + ':')
-		for k, v in list(site_dict.items()):
-			exec_cmd = k + '=\'' + v + '\''
-			print('  ' + exec_cmd)
-			exec(exec_cmd)
-else:
-	print('Site settings ignored')
+print 'Site settings ignored'
 
 # end site settings ------------------------------
 
 # command line settings --------------------------
 
-for k in list(ARGUMENTS.keys()):
+for k in ARGUMENTS.keys():
 	exec_cmd = k + '=\'' + ARGUMENTS[k] + '\''
-	print('Command line: ' + exec_cmd)
+	print 'Command line: ' + exec_cmd
 	exec( exec_cmd )
 
 # end command line settings ----------------------
 
 # save site configuration ----------------------
-
-if ( 'NOCONF' not in ARGUMENTS or ARGUMENTS['NOCONF'] != '1' ):
-	for k in serialized:
-		exec_cmd = 'site_dict[\'' + k + '\'] = ' + k
-		exec(exec_cmd)
-
-	site_file = open(conf_filename, 'w')
-	p = pickle.Pickler(site_file)
-	p.dump(site_dict) #.decode()
-	site_file.close()
 
 # end save site configuration ------------------
 
@@ -331,7 +309,7 @@ if ( TARGET_GAME == '1' ):
 	TARGET_SPGAME = '1'
 
 if ( BUILD == 'test' ):
-	print('WARNING: compiling a release build in test configuration')
+	print 'WARNING: compiling a release build in test configuration'
 
 # end configuration rules ----------------------
 
@@ -417,9 +395,9 @@ if ( OS == 'Darwin' ):
 		os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.3' 
 	elif ( OSX_BUILDSTYLE == '2' ):
 		if ( CC == 'gcc' ):
-			CC = [ '/usr/bin/gcc-4.0' ]
+			CC = [ '/usr/bin/gcc' ]
 		if ( CXX == 'g++' ):
-			CXX = [ '/usr/bin/g++-4.0' ]
+			CXX = [ '/usr/bin/g++' ]
 
 		BASECPPFLAGS += [ '-isystem', '/Developer/SDKs/MacOSX10.4u.sdk/usr/include/gcc/darwin/4.0' ]
 		BASECPPFLAGS += [ '-mone-byte-bool' ]
@@ -450,7 +428,7 @@ elif ( BUILD == 'test' ):
 	BASECPPFLAGS.append( '-D_TEST' )
 	if ( OS == 'Linux' ):
 		# Don't omit frame pointers in the test build
-		OPTCPPFLAGS = [ '-O3', '-march=pentium3', '-Winline', '-ffast-math', '-fno-unsafe-math-optimizations' ]
+		OPTCPPFLAGS = [ '-O3', '-march=pentium4', '-Winline', '-ffast-math', '-fno-unsafe-math-optimizations' ]
 		if ( ID_MCHECK == '0' ):
 			ID_MCHECK = '2'
 	elif ( OS == 'Darwin' ):
@@ -463,13 +441,13 @@ elif ( BUILD == 'release' ):
 		# -finline-functions: implicit at -O3
 		# -fschedule-insns2: implicit at -O2
 		# no-unsafe-math-optimizations: that should be on by default really. hit some wonko bugs in physics code because of that
-		OPTCPPFLAGS = [ '-O3', '-march=pentium3', '-Winline', '-ffast-math', '-fno-unsafe-math-optimizations', '-fomit-frame-pointer' ]
+		OPTCPPFLAGS = [ '-O3', '-march=pentium4', '-Winline', '-ffast-math', '-fno-unsafe-math-optimizations', '-fomit-frame-pointer' ]
 		if ( ID_MCHECK == '0' ):
 			ID_MCHECK = '2'
 	elif ( OS == 'Darwin' ):
 		OPTCPPFLAGS = [ '-O3', '-falign-functions=16', '-falign-loops=16', '-finline' ]
 else:
-	print('Unknown build configuration ' + BUILD)
+	print 'Unknown build configuration ' + BUILD
 	sys.exit(0)
 
 if ( GL_HARDLINK != '0' ):
@@ -504,7 +482,7 @@ g_base_env = Environment( ENV = os.environ, CC = CC, CXX = CXX, LINK = LINK, CPP
 scons_utils.SetupUtils( g_base_env )
 g_base_env.Append( CXXFLAGS = [ '-Wno-invalid-offsetof' ] )
 
-g_env = copy.Copy(g_base_env)
+g_env = g_base_env.Copy()
 
 g_env['CPPFLAGS'] += OPTCPPFLAGS
 g_env['CPPFLAGS'] += CORECPPFLAGS
@@ -528,7 +506,7 @@ g_env_noopt.Append( CPPFLAGS = '-fno-strict-aliasing' )
 g_game_env.Append( CPPFLAGS = '-fno-strict-aliasing' )
 
 if ( int(JOBS) > 1 ):
-	print('Using buffered process output')
+	print 'Using buffered process output'
 	silent = False
 	if ( SILENT == '1' ):
 		silent = True
